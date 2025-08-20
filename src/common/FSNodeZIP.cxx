@@ -42,7 +42,7 @@ FSNodeZIP::FSNodeZIP(string_view p)
     if(home != nullptr)
       _zipFile.replace(0, 1, home);
 #elif defined(BSPF_WINDOWS)
-    _zipFile.replace(0, 1, HomeFinder::getHomePath());
+    //TODO FIX THIS _zipFile.replace(0, 1, HomeFinder::getHomePath());
 #endif
   }
 

@@ -107,6 +107,7 @@ std::ostream& operator<< (std::ostream& out, const std::vector<T>& v) {
 }
 
 static const string EmptyString;
+static const std::wstring EmptyWString;
 
 // This is defined by some systems, but Stella has other uses for it
 #undef PAGE_SIZE
@@ -438,6 +439,31 @@ namespace BSPF
   {
     static constexpr string_view spaces{" ,.;:+-*&/\\'"};
     return spaces.find(c) != string_view::npos;
+  }
+
+  inline std::wstring stringToWstring(string_view str)
+  {
+      std::wstring ret;
+      auto iter = str.cbegin();
+      auto end = str.cend();
+      while (iter != end)
+      {
+          ret += *iter++;
+      }
+      return ret;
+  }
+
+  inline string wstringToString(std::basic_string_view<wchar_t> wstr)
+  {
+      std::string ret;
+      auto iter = wstr.cbegin();
+      auto end = wstr.cend();
+      while (iter != end)
+      {
+          wchar_t widechar = *iter++;
+          ret += (widechar > 0x7f) ? '_' : static_cast<char>(widechar & 0x7f);
+      }
+      return ret;
   }
 } // namespace BSPF
 

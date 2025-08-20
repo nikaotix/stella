@@ -27,12 +27,12 @@
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 FSNodeWINDOWS::FSNodeWINDOWS(string_view p)
-  : _path{p.length() > 0 ? p : "~"}  // Default to home directory
+  : _path{p.length() > 0 ? BSPF::stringToWstring(p) : L"~"}  // Default to home directory
 {
   // Expand '~' to the users 'home' directory
   if (_path[0] == '~')
     _path.replace(0, 1, HomeFinder::getHomePath());
-
+  _pathString = BSPF::wstringToString(_path);
   setFlags();
 }
 
@@ -44,7 +44,8 @@ bool FSNodeWINDOWS::setFlags()
   if (GetFullPathName(_path.c_str(), MAX_PATH - 1, buf.data(), NULL))
     _path = buf.data();
 
-  _displayName = lastPathComponent(_path);
+  _displayName = lastPathComponent(BSPF::wstringToString(_path));
+  _pathString = BSPF::wstringToString(_path);
 
   // Check whether it is a directory, and whether the file actually exists
   const DWORD fileAttribs = GetFileAttributes(_path.c_str());
@@ -72,17 +73,17 @@ bool FSNodeWINDOWS::setFlags()
 string FSNodeWINDOWS::getShortPath() const
 {
   // If the path starts with the home directory, replace it with '~'
-  const string& home = HomeFinder::getHomePath();
-  if (home != "" && BSPF::startsWithIgnoreCase(_path, home))
+  const std::wstring& home = HomeFinder::getHomePath();
+  if (home != L"" && BSPF::startsWithIgnoreCase(BSPF::wstringToString(_path), BSPF::wstringToString(home)))
   {
-    string path = "~";
-    const char* const offset = _path.c_str() + home.size();
+    std::wstring path = L"~";
+    const wchar_t* const offset = _path.c_str() + home.size();
     if (*offset != FSNode::PATH_SEPARATOR)
       path += FSNode::PATH_SEPARATOR;
     path += offset;
-    return path;
+    return BSPF::wstringToString(path);
   }
-  return _path;
+  return _pathString;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -91,7 +92,7 @@ size_t FSNodeWINDOWS::getSize() const
   if (_size == 0 && _isFile)
   {
     struct _stat st;
-    _size = _stat(_path.c_str(), &st) == 0 ? st.st_size : 0;
+    _size = _tstat(_path.c_str(), &st) == 0 ? st.st_size : 0;
   }
   return _size;
 }
@@ -102,7 +103,7 @@ AbstractFSNodePtr FSNodeWINDOWS::getParent() const
   if (_isPseudoRoot)
     return nullptr;
   else if (_path.size() > 3)
-    return make_unique<FSNodeWINDOWS>(stemPathComponent(_path));
+    return make_unique<FSNodeWINDOWS>(stemPathComponent(BSPF::wstringToString(_path)));
   else
     return make_unique<FSNodeWINDOWS>();
 }
@@ -114,16 +115,16 @@ bool FSNodeWINDOWS::getChildren(AbstractFSList& myList, ListMode mode) const
   {
     // Files enumeration
     WIN32_FIND_DATA desc{};
-    HANDLE handle = FindFirstFileEx((_path + "*").c_str(), FindExInfoBasic,
+    HANDLE handle = FindFirstFileEx((_path + L"*").c_str(), FindExInfoBasic,
         &desc, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
     if (handle == INVALID_HANDLE_VALUE)
       return false;
 
     do {
-      const char* const asciiName = desc.cFileName;
+      const wchar_t* const name = desc.cFileName;
 
       // Skip files starting with '.' (we assume empty filenames never occur)
-      if (asciiName[0] == '.')
+      if (name[0] == '.')
         continue;
 
       const bool isDirectory = static_cast<bool>(desc.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
@@ -136,9 +137,10 @@ bool FSNodeWINDOWS::getChildren(AbstractFSList& myList, ListMode mode) const
       FSNodeWINDOWS entry;
       entry._isDirectory = isDirectory;
       entry._isFile = isFile;
-      entry._displayName = asciiName;
+      entry._displayName = BSPF::wstringToString(std::wstring(name));
       entry._path = _path;
-      entry._path += asciiName;
+      entry._path += name;
+      entry._pathString = BSPF::wstringToString(entry._path);
       if (entry._isDirectory)
         entry._path += FSNode::PATH_SEPARATOR;
       entry._isPseudoRoot = false;
@@ -177,19 +179,19 @@ bool FSNodeWINDOWS::getChildren(AbstractFSList& myList, ListMode mode) const
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FSNodeWINDOWS::exists() const
 {
-  return _access(_path.c_str(), 0 /*F_OK*/) == 0;
+  return _waccess(_path.c_str(), 0 /*F_OK*/) == 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FSNodeWINDOWS::isReadable() const
 {
-  return _access(_path.c_str(), 4 /*R_OK*/) == 0;
+  return _waccess(_path.c_str(), 4 /*R_OK*/) == 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FSNodeWINDOWS::isWritable() const
 {
-  return _access(_path.c_str(), 2 /*W_OK*/) == 0;
+  return _waccess(_path.c_str(), 2 /*W_OK*/) == 0;
 }
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -204,14 +206,112 @@ bool FSNodeWINDOWS::makeDir()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 bool FSNodeWINDOWS::rename(string_view newfile)
 {
-  if (!_isPseudoRoot && MoveFile(_path.c_str(), string{newfile}.c_str()) != 0)
+  if (!_isPseudoRoot && MoveFile(_path.c_str(), BSPF::stringToWstring(newfile).c_str()) != 0)
   {
-    _path = newfile;
+    _path = BSPF::stringToWstring(newfile);
     if (_path[0] == '~')
       _path.replace(0, 1, HomeFinder::getHomePath());
 
+    _pathString = newfile;
     return setFlags();
   }
 
   return false;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t FSNodeWINDOWS::read(ByteBuffer& buffer, size_t size) const
+{
+    size_t sizeRead = 0;
+
+    // File must actually exist
+    if (!(exists() && isReadable()))
+        throw runtime_error("File not found/readable");
+
+    std::ifstream in(_path, std::ios::binary);
+    if (in)
+    {
+        in.seekg(0, std::ios::end);
+        sizeRead = static_cast<size_t>(in.tellg());
+        in.seekg(0, std::ios::beg);
+
+        if (sizeRead == 0)
+            throw runtime_error("Zero-byte file");
+        else if (size > 0)  // If a requested size to read is provided, honour it
+            sizeRead = std::min(sizeRead, size);
+
+        buffer = make_unique<uInt8[]>(sizeRead);
+        in.read(reinterpret_cast<char*>(buffer.get()), sizeRead);
+    }
+    else
+        throw runtime_error("File open/read error");
+
+    return sizeRead;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t FSNodeWINDOWS::read(stringstream& buffer) const
+{
+    size_t sizeRead = 0;
+
+    // File must actually exist
+    if (!(exists() && isReadable()))
+        throw runtime_error("File not found/readable");
+
+    std::ifstream in(_path);
+    if (in)
+    {
+        in.seekg(0, std::ios::end);
+        sizeRead = static_cast<size_t>(in.tellg());
+        in.seekg(0, std::ios::beg);
+
+        if (sizeRead == 0)
+            throw runtime_error("Zero-byte file");
+
+        buffer << in.rdbuf();
+    }
+    else
+        throw runtime_error("File open/read error");
+
+    return sizeRead;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t FSNodeWINDOWS::write(const ByteBuffer& buffer, size_t size) const
+{
+    size_t sizeWritten = 0;
+
+
+    std::ofstream out(_path, std::ios::binary);
+    if (out)
+    {
+        out.write(reinterpret_cast<const char*>(buffer.get()), size);
+
+        out.seekp(0, std::ios::end);
+        sizeWritten = static_cast<size_t>(out.tellp());
+    }
+    else
+        throw runtime_error("File open/write error");
+
+    return sizeWritten;
+}
+
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+size_t FSNodeWINDOWS::write(const stringstream& buffer) const
+{
+    size_t sizeWritten = 0;
+
+ 
+    std::ofstream out(_path);
+    if (out)
+    {
+        out << buffer.rdbuf();
+
+        out.seekp(0, std::ios::end);
+        sizeWritten = static_cast<size_t>(out.tellp());
+    }
+    else
+        throw runtime_error("File open/write error");
+
+    return sizeWritten;
 }

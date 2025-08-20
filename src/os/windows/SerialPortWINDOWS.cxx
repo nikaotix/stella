@@ -33,7 +33,7 @@ bool SerialPortWINDOWS::openPort(const string& device)
 {
   if(myHandle == INVALID_HANDLE_VALUE)
   {
-    myHandle = CreateFile(device.c_str(), GENERIC_READ|GENERIC_WRITE, 0,
+    myHandle = CreateFile(BSPF::stringToWstring(device).c_str(), GENERIC_READ|GENERIC_WRITE, 0,
                           NULL, OPEN_EXISTING, 0, NULL);
 
     if(myHandle != INVALID_HANDLE_VALUE)
@@ -42,7 +42,7 @@ bool SerialPortWINDOWS::openPort(const string& device)
 
       FillMemory(&dcb, sizeof(dcb), 0);
       dcb.DCBlength = sizeof(dcb);
-      if(!BuildCommDCB("19200,n,8,1", &dcb))
+      if(!BuildCommDCB(L"19200,n,8,1", &dcb))
       {
         CloseHandle(myHandle);
         myHandle = INVALID_HANDLE_VALUE;
@@ -134,7 +134,7 @@ StringList SerialPortWINDOWS::portNames()
           NULL, &type, (LPBYTE)friendlyName, &friendlyNameLen);
 
         if (result == ERROR_SUCCESS && type == REG_SZ)
-          ports.emplace_back(friendlyName);
+          ports.emplace_back(BSPF::wstringToString(friendlyName));
       }
     }
   }

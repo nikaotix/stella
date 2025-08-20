@@ -31,59 +31,59 @@ class HomeFinder
     ~HomeFinder() = default;
 
     // Return the 'APPDATA' folder, or an empty string if the folder couldn't be determined.
-    static const string& getAppDataPath()
+    static const std::wstring& getAppDataPath()
     {
-      if(ourAppDataPath == "")
+      if(ourAppDataPath == L"")
       {
-        char folder_path[MAX_PATH];
-        HRESULT const result = SHGetFolderPathA(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE,
+        wchar_t folder_path[MAX_PATH];
+        HRESULT const result = SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE,
           NULL, 0, folder_path);
-        ourAppDataPath = (result == S_OK) ? folder_path : EmptyString;
+        ourAppDataPath = (result == S_OK) ? folder_path : EmptyWString;
       }
       return ourAppDataPath;
     }
 
     // Return the 'Desktop' folder, or an empty string if the folder couldn't be determined.
-    static const string& getDesktopPath()
+    static const std::wstring& getDesktopPath()
     {
-      if(ourDesktopPath == "")
+      if(ourDesktopPath == L"")
       {
-        char folder_path[MAX_PATH];
-        HRESULT const result = SHGetFolderPathA(NULL, CSIDL_DESKTOPDIRECTORY | CSIDL_FLAG_CREATE,
+        wchar_t folder_path[MAX_PATH];
+        HRESULT const result = SHGetFolderPath(NULL, CSIDL_DESKTOPDIRECTORY | CSIDL_FLAG_CREATE,
           NULL, 0, folder_path);
-        ourDesktopPath = (result == S_OK) ? folder_path : EmptyString;
+        ourDesktopPath = (result == S_OK) ? folder_path : EmptyWString;
       }
       return ourDesktopPath;
     }
 
     // Return the 'My Documents' folder, or an empty string if the folder couldn't be determined.
-    static const string& getDocumentsPath()
+    static const std::wstring& getDocumentsPath()
     {
-      if(ourDocumentsPath == "")
+      if(ourDocumentsPath == L"")
       {
-        char folder_path[MAX_PATH];
-        HRESULT const result = SHGetFolderPathA(NULL, CSIDL_MYDOCUMENTS | CSIDL_FLAG_CREATE,
+        wchar_t folder_path[MAX_PATH];
+        HRESULT const result = SHGetFolderPath(NULL, CSIDL_MYDOCUMENTS | CSIDL_FLAG_CREATE,
           NULL, 0, folder_path);
-        ourDocumentsPath = (result == S_OK) ? folder_path : EmptyString;
+        ourDocumentsPath = (result == S_OK) ? folder_path : EmptyWString;
       }
       return ourDocumentsPath;
     }
 
     // Return the 'HOME/User' folder, or an empty string if the folder couldn't be determined.
-    static const string& getHomePath()
+    static const std::wstring& getHomePath()
     {
-      if(ourHomePath == "")
+      if(ourHomePath == L"")
       {
-        char folder_path[MAX_PATH];
-        HRESULT const result = SHGetFolderPathA(NULL, CSIDL_PROFILE | CSIDL_FLAG_CREATE,
+        wchar_t folder_path[MAX_PATH];
+        HRESULT const result = SHGetFolderPath(NULL, CSIDL_PROFILE | CSIDL_FLAG_CREATE,
           NULL, 0, folder_path);
-        ourHomePath = (result == S_OK) ? folder_path : EmptyString;
+        ourHomePath = (result == S_OK) ? folder_path : EmptyWString;
       }
       return ourHomePath;
     }
 
   private:
-    static string ourHomePath, ourAppDataPath, ourDesktopPath, ourDocumentsPath;
+    static std::wstring ourHomePath, ourAppDataPath, ourDesktopPath, ourDocumentsPath;
 
     // Following constructors and assignment operators not supported
     HomeFinder(const HomeFinder&) = delete;
@@ -92,9 +92,9 @@ class HomeFinder
     HomeFinder& operator=(HomeFinder&&) = delete;
 };
 
-__declspec(selectany) string HomeFinder::ourHomePath = "";
-__declspec(selectany) string HomeFinder::ourAppDataPath = "";
-__declspec(selectany) string HomeFinder::ourDesktopPath = "";
-__declspec(selectany) string HomeFinder::ourDocumentsPath = "";
+__declspec(selectany) std::wstring HomeFinder::ourHomePath = L"";
+__declspec(selectany) std::wstring HomeFinder::ourAppDataPath = L"";
+__declspec(selectany) std::wstring HomeFinder::ourDesktopPath = L"";
+__declspec(selectany) std::wstring HomeFinder::ourDocumentsPath = L"";
 
 #endif

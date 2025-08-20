@@ -25,7 +25,7 @@
 void OSystemWINDOWS::getBaseDirectories(string& basedir, string& homedir,
                                         bool useappdir, string_view usedir)
 {
-  const FSNode appdata(HomeFinder::getAppDataPath());
+  const FSNode appdata(BSPF::wstringToString(HomeFinder::getAppDataPath()));
 
   if(appdata.isDirectory())
   {
@@ -35,7 +35,7 @@ void OSystemWINDOWS::getBaseDirectories(string& basedir, string& homedir,
     basedir += "Stella\\";
   }
 
-  const FSNode defaultHomeDir(HomeFinder::getDesktopPath());
+  const FSNode defaultHomeDir(BSPF::wstringToString(HomeFinder::getDesktopPath()));
   homedir = defaultHomeDir.getShortPath();
 
   // Check to see if basedir overrides are active

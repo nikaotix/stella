@@ -50,7 +50,7 @@ class FSNode
 {
   public:
   #ifdef BSPF_WINDOWS
-    static constexpr char PATH_SEPARATOR = '\\';
+    static constexpr wchar_t PATH_SEPARATOR = '\\';
   #else
     static constexpr char PATH_SEPARATOR = '/';
   #endif

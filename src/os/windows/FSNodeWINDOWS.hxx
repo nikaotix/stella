@@ -55,7 +55,7 @@ class FSNodeWINDOWS : public AbstractFSNode
     bool exists() const override;
     const string& getName() const override  { return _displayName; }
     void setName(string_view name) override { _displayName = name; }
-    const string& getPath() const override { return _path; }
+    const string& getPath() const override { return _pathString; }
     string getShortPath() const override;
     bool isDirectory() const override { return _isDirectory; }
     bool isFile() const override      { return _isFile;      }
@@ -65,6 +65,53 @@ class FSNodeWINDOWS : public AbstractFSNode
     bool rename(string_view newfile) override;
 
     size_t getSize() const override;
+
+    /**
+ * Read data (binary format) into the given buffer.
+ *
+ * @param buffer  The buffer to contain the data (allocated in this method).
+ * @param size    The amount of data to read (0 means read all data).
+ *
+ * @return  The number of bytes read (0 in the case of failure)
+ *          This method can throw exceptions, and should be used inside
+ *          a try-catch block.
+ */
+    size_t read(ByteBuffer& buffer, size_t size = 0) const;
+
+    /**
+     * Read data (text format) into the given stream.
+     *
+     * @param buffer  The buffer stream to contain the data.
+     *
+     * @return  The number of bytes read (0 in the case of failure)
+     *          This method can throw exceptions, and should be used inside
+     *          a try-catch block.
+     */
+    size_t read(stringstream& buffer) const;
+
+    /**
+     * Write data (binary format) from the given buffer.
+     *
+     * @param buffer  The buffer that contains the data.
+     * @param size    The size of the buffer.
+     *
+     * @return  The number of bytes written (0 in the case of failure)
+     *          This method can throw exceptions, and should be used inside
+     *          a try-catch block.
+     */
+    size_t write(const ByteBuffer& buffer, size_t size) const;
+
+    /**
+     * Write data (text format) from the given stream.
+     *
+     * @param buffer  The buffer stream that contains the data.
+     *
+     * @return  The number of bytes written (0 in the case of failure)
+     *          This method can throw exceptions, and should be used inside
+     *          a try-catch block.
+     */
+    size_t write(const stringstream& buffer) const;
+
     bool hasParent() const override { return !_isPseudoRoot; }
     AbstractFSNodePtr getParent() const override;
     bool getChildren(AbstractFSList& list, ListMode mode) const override;
@@ -78,7 +125,8 @@ class FSNodeWINDOWS : public AbstractFSNode
     bool setFlags();
 
   private:
-    string _displayName, _path;
+    std::wstring _path;
+    string _displayName, _pathString;
     bool _isPseudoRoot{false}, _isDirectory{false}, _isFile{false};
     mutable size_t _size{0};
 };
