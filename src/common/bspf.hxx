@@ -444,12 +444,22 @@ namespace BSPF
   inline std::wstring stringToWstring(string_view str)
   {
       std::wstring ret;
+      ret.resize(str.length() * 2);
+#if (defined BSPF_WINDOWS || defined __WIN32__) && (defined _UNICODE)
+      size_t len;
+      errno_t error = mbstowcs_s(&len, ret.data(), ret.length(), str.data(), str.length());
+      if (error != 0)
+      {
+          return L"";
+      }
+#else
       auto iter = str.cbegin();
       auto end = str.cend();
       while (iter != end)
       {
           ret += *iter++;
       }
+#endif
       return ret;
   }
 
